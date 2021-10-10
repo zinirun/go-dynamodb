@@ -13,15 +13,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-type DBConnection dynamodb.Client
+var client *dynamodb.Client
+
+func init() {
+	client = db.GetDynamoDBClient()
+}
 
 func main() {
 	ListTables()
 }
 
 func ListTables() {
-	svc := db.GetDynamoDBClient()
-	resp, err := (svc).ListTables(context.TODO(), &dynamodb.ListTablesInput{
+	resp, err := client.ListTables(context.TODO(), &dynamodb.ListTablesInput{
 		Limit: aws.Int32(5),
 	})
 	if err != nil {
@@ -35,8 +38,7 @@ func ListTables() {
 }
 
 func CreateTable() {
-	svc := db.GetDynamoDBClient()
-	out, err := svc.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
+	out, err := client.CreateTable(context.TODO(), &dynamodb.CreateTableInput{
 		AttributeDefinitions: []types.AttributeDefinition{
 			{
 				AttributeName: aws.String("id"),
@@ -66,8 +68,8 @@ func CreateTable() {
 	fmt.Println(out)
 }
 
-func WaitForTable(ctx context.Context, db *dynamodb.Client, tableName string) error {
-	w := dynamodb.NewTableExistsWaiter(db)
+func WaitForTable(ctx context.Context, tableName string) error {
+	w := dynamodb.NewTableExistsWaiter(client)
 	err := w.Wait(ctx,
 		&dynamodb.DescribeTableInput{
 			TableName: aws.String(tableName),
@@ -84,8 +86,7 @@ func WaitForTable(ctx context.Context, db *dynamodb.Client, tableName string) er
 }
 
 func DeleteTable(tableName string) {
-	svc := db.GetDynamoDBClient()
-	out, err := svc.DeleteTable(context.TODO(), &dynamodb.DeleteTableInput{
+	out, err := client.DeleteTable(context.TODO(), &dynamodb.DeleteTableInput{
 		TableName: aws.String(tableName),
 	})
 	if err != nil {
